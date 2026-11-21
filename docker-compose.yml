@@ -1,0 +1,1 @@
+services:  api:    build: ./server    ports: ["4000:4000"]    environment:      PORT: 4000      JWT_SECRET: ${JWT_SECRET:-change-this}      CLIENT_ORIGIN: http://localhost:5173      DATA_DIR: /app/data    volumes: [querynest_data:/app/data]  web:    build: ./client    ports: ["5173:80"]    depends_on: [api]olumes:  querynest_data:
