@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101b2d">
+<meta name="description" content="QueryNest is a browser-based SQL workspace with a real SQLite engine, saved queries, visualizations and dashboards.">
+<link rel="canonical" href="https://theanalyst.in/querynest/">
+<title>QueryNest — SQL workspace by The Analyst</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<style>
+:root{color-scheme:light;--bg:#f4f6fa;--surface:#fff;--surface-2:#f8f9fc;--ink:#172338;--muted:#748197;--line:#e4e8f0;--nav:#101b2d;--nav-soft:#1b2940;--accent:#5277e8;--accent-2:#eaf0ff;--green:#159b73;--red:#c84e5c;--shadow:0 8px 28px rgba(24,41,68,.06)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{min-height:100vh;display:grid;grid-template-columns:248px minmax(0,1fr)}
+.sidebar{background:var(--nav);color:#dce5f3;min-height:100vh;padding:22px 15px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 9px 26px;color:#fff;text-decoration:none}
+.brand-mark{width:35px;height:35px;border-radius:11px;background:linear-gradient(145deg,#88a4ff,#4f6fe1);display:grid;place-items:center;color:#fff;font-weight:850;font-size:18px;box-shadow:0 6px 16px #07122588}
+.brand strong{display:block;font-size:17px;letter-spacing:-.03em}.brand small{display:block;color:#8595ac;font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
+.workspace-tag{margin:0 8px 17px;border:1px solid #2b3b54;border-radius:8px;padding:8px 10px;color:#9cacbf;font-size:11px;display:flex;align-items:center;gap:8px}
+.dot{width:7px;height:7px;background:#45c59c;border-radius:50%;display:inline-block}
+.nav-label{padding:10px 11px 6px;color:#71829b;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+.nav-btn{width:100%;display:flex;align-items:center;gap:12px;border:0;background:transparent;color:#aebbd0;padding:10px 11px;margin:2px 0;border-radius:8px;text-align:left;font-size:13px;transition:.15s}
+.nav-btn:hover{background:#1a2940;color:#fff}.nav-btn.active{background:#263a5a;color:#fff;box-shadow:inset 2px 0 #85a2ff}
+.nav-icon{width:18px;text-align:center;font-size:15px;color:#8799b4}
+.sidebar-spacer{flex:1}
+.sidebar-status{border-top:1px solid #27364d;padding:16px 9px 3px;font-size:11px;color:#8797ad}
+.sidebar-status strong{display:block;font-size:12px;color:#dfe8f4;font-weight:650;margin-bottom:3px}
+.main{min-width:0}
+.topbar{height:62px;background:var(--surface);border-bottom:1px solid var(--line);padding:0 30px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.crumb{font-size:12px;color:var(--muted)}.crumb b{color:var(--ink);font-weight:650}
+.top-actions{display:flex;align-items:center;gap:9px}
+.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#e9edfa;color:#4b64b6;font-size:11px;font-weight:800}
+.content{max-width:1480px;margin:0 auto;padding:29px 30px 55px}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0 0 22px}
+.eyebrow{font-size:10px;letter-spacing:.14em;color:#8491a6;text-transform:uppercase;font-weight:800;margin:0 0 7px}
+h1{font-size:27px;letter-spacing:-.045em;line-height:1.15;margin:0 0 6px}
+.subtitle{margin:0;color:var(--muted);font-size:13px}
+.button{border:1px solid var(--line);background:var(--surface);color:#38465b;border-radius:7px;padding:8px 12px;font-size:12px;font-weight:650;display:inline-flex;align-items:center;gap:7px}
+.button:hover{border-color:#bac6dc;background:var(--surface-2)}
+.button.primary{border-color:var(--accent);background:var(--accent);color:#fff;box-shadow:0 3px 8px #5277e82a}
+.button.primary:hover{background:#4167d7}
+.button.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.button.danger{color:var(--red)}
+.button:disabled{opacity:.45;cursor:not-allowed}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #dce4f3;background:#f6f8fd;color:#687993;border-radius:99px;padding:4px 8px;font-size:10px;font-weight:650}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+.editor-grid{display:grid;grid-template-columns:224px minmax(0,1fr);gap:15px;align-items:start}
+.schema-card{overflow:hidden}
+.card-title{padding:14px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title h2,.card-title h3{font-size:12px;margin:0;font-weight:750;letter-spacing:-.01em}
+.card-title small{font-size:10px;color:var(--muted)}
+.schema-inner{padding:11px}
+.source-row{padding:8px 8px;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:650}
+.source-row .badge-icon{display:grid;place-items:center;width:23px;height:23px;border-radius:6px;background:#edf2ff;color:#4e6ed2;font-size:11px}
+.source-row small{margin-left:auto;color:var(--green);font-size:9px;font-weight:700}
+.table-item{display:flex;width:100%;align-items:center;gap:8px;padding:7px 9px 7px 14px;border:0;background:transparent;border-radius:6px;color:#637189;text-align:left;font-size:11px}
+.table-item:hover{background:#f0f3fa;color:#2e405e}
+.table-item .count{margin-left:auto;color:#a0aabb;font-size:10px}
+.schema-foot{padding:11px 12px;border-top:1px solid var(--line);font-size:10px;color:var(--muted)}
+.editor-card{overflow:hidden}
+.editor-toolbar{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border-bottom:1px solid var(--line);background:var(--surface-2);gap:10px}
+.editor-toolbar-left{display:flex;align-items:center;gap:8px;font-size:11px;color:#67758a}
+.engine-dot{width:7px;height:7px;background:#35b38b;border-radius:50%}
+.editor-toolbar-right{display:flex;gap:7px}
+.editor-shell{min-height:218px;position:relative}
+#sql-editor{width:100%;min-height:218px;resize:vertical;border:0;outline:0;padding:18px 19px;background:#fff;color:#243248;font:13px/1.65 "SFMono-Regular",Consolas,"Liberation Mono",monospace;tab-size:2}
+.CodeMirror{height:218px;font:13px/1.65 "SFMono-Regular",Consolas,monospace;background:#fff;color:#243248}
+.CodeMirror-gutters{background:#f8f9fc;border-right:1px solid #edf0f5}
+.CodeMirror-linenumber{color:#a4adbc}
+.CodeMirror-cursor{border-left:2px solid #5277e8}
+.editor-bottom{padding:10px 13px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.editor-bottom-left,.editor-bottom-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.shortcut{font-size:10px;color:#a0aabd}
+.select{border:1px solid var(--line);background:#fff;border-radius:6px;padding:7px 9px;color:#536177;font-size:11px;outline:0}
+.status-line{min-height:25px;padding:5px 14px 0;color:var(--muted);font-size:11px}
+.status-line.error{color:var(--red)}
+.results-card{margin-top:15px;overflow:hidden}
+.results-top{padding:13px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.results-top h2{font-size:13px;margin:0 0 3px}.results-top small{font-size:10px;color:var(--muted)}
+.result-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.tabs{display:flex;border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px;background:#f8f9fb}
+.tab{border:0;border-radius:5px;background:transparent;color:#7e899b;padding:5px 9px;font-size:10px;font-weight:700}
+.tab.active{background:#fff;color:#385487;box-shadow:0 1px 3px #15264018}
+.result-meta{display:flex;gap:15px;padding:9px 15px;border-bottom:1px solid #edf0f4;color:#8994a6;font-size:10px}
+.table-wrap{overflow:auto;max-height:420px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{padding:10px 13px;border-bottom:1px solid #edf0f4;text-align:left;white-space:nowrap}
+th{position:sticky;top:0;z-index:1;background:#f8f9fc;color:#7a879b;text-transform:uppercase;font-size:9px;letter-spacing:.07em;font-weight:750}
+td{color:#435168}tbody tr:hover td{background:#fafbfe}
+.empty{padding:46px 20px;text-align:center;color:#8a96a8;font-size:12px}
+.empty strong{display:block;color:#536279;font-size:13px;margin-bottom:5px}
+.chart-wrap{padding:15px;min-height:300px;display:flex;align-items:center;justify-content:center}
+.chart-wrap svg{width:100%;height:300px;overflow:visible}
+.chart-hint{font-size:10px;color:#95a0af;margin-top:-8px;padding:0 15px 12px}
+.hidden{display:none!important}
+.view{display:none}.view.active{display:block}
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:15px}
+.stat-card{padding:14px 16px}.stat-label{font-size:10px;color:var(--muted);margin-bottom:7px}.stat-value{font-size:22px;font-weight:750;letter-spacing:-.04em}.stat-foot{font-size:10px;color:#99a4b3;margin-top:4px}
+.list-card{overflow:hidden}
+.list-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid #edf0f4}
+.list-row:last-child{border-bottom:0}
+.list-symbol{width:31px;height:31px;display:grid;place-items:center;border-radius:8px;background:#eef2ff;color:#4e6ed2;font-size:13px;flex-shrink:0}
+.list-main{min-width:0;flex:1}.list-main strong{display:block;font-size:12px}.list-main small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.list-actions{display:flex;gap:6px;align-items:center}
+.modal-backdrop{position:fixed;inset:0;background:#10182788;display:grid;place-items:center;z-index:30;padding:20px}
+.modal{width:min(420px,100%);background:#fff;border-radius:12px;box-shadow:0 25px 80px #07122555;overflow:hidden}
+.modal-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.modal-head h2{font-size:14px;margin:0}
+.modal-body{padding:18px}.field{display:block;margin-bottom:13px}.field span{display:block;font-size:10px;font-weight:750;color:#68758a;margin-bottom:5px}.field input,.field select{width:100%;border:1px solid #dfe4ed;border-radius:7px;padding:9px 10px;outline:0;font-size:12px}.field input:focus,.field select:focus{border-color:#7c96ed;box-shadow:0 0 0 3px #5277e81b}
+.modal-foot{padding:12px 18px;background:#fafbfd;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.toast{position:fixed;bottom:20px;right:22px;z-index:40;background:#17263c;color:#fff;padding:10px 14px;border-radius:8px;font-size:11px;box-shadow:0 8px 30px #09152b44;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:translateY(0)}
+.footnote{margin:14px 2px 0;color:#929dad;font-size:10px}
+a.site-link{color:#6078c6;text-decoration:none;font-weight:700}
+.import-strip{display:flex;gap:9px;align-items:center;padding:13px 14px;border:1px dashed #cad4e5;border-radius:8px;background:#fafbfe;margin-top:13px}
+.import-strip strong{display:block;font-size:11px}.import-strip small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+body.dark{color-scheme:dark;--bg:#0c1422;--surface:#142033;--surface-2:#18273c;--ink:#e5ecf7;--muted:#97a7bd;--line:#293951;--shadow:0 8px 28px #0003}
+body.dark .topbar,body.dark .card,body.dark .modal{background:var(--surface)}
+body.dark .editor-toolbar,body.dark .results-top,body.dark .result-meta{background:var(--surface-2)}
+body.dark #sql-editor,body.dark .CodeMirror{background:#111d2e;color:#dce5f2}
+body.dark .CodeMirror-gutters{background:#142033;border-color:#293951}
+body.dark .select,body.dark .button,body.dark .tabs{background:#1a2a40;color:#cbd6e6;border-color:#31445f}
+body.dark th{background:#19283c;color:#a9b8cb}
+body.dark td{color:#c4cfdf;border-color:#24354c}
+body.dark tbody tr:hover td{background:#1b2b41}
+body.dark .list-row{border-color:#26374e}
+body.dark .list-symbol{background:#243655;color:#a9bcff}
+body.dark .field input,body.dark .field select{background:#15243a;color:#e4ebf5;border-color:#35475f}
+body.dark .modal-foot{background:#17263b;border-color:#293951}
+body.dark .workspace-tag{border-color:#354963}
+@media(max-width:1000px){.app{grid-template-columns:205px minmax(0,1fr)}.content{padding:22px 18px 40px}.topbar{padding:0 18px}.editor-grid{grid-template-columns:190px minmax(0,1fr)}}
+@media(max-width:760px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;min-height:0;padding:10px 11px;display:block}.brand{padding:2px 7px 10px}.brand-mark{width:30px;height:30px}.workspace-tag,.nav-label,.sidebar-spacer,.sidebar-status{display:none}.nav-group{display:flex;gap:4px;overflow:auto}.nav-btn{width:auto;white-space:nowrap;padding:8px 10px;font-size:11px}.nav-icon{width:auto}.topbar{height:49px;padding:0 13px}.content{padding:18px 12px 35px}.page-head{align-items:flex-start}.page-head h1{font-size:23px}.editor-grid{grid-template-columns:1fr}.schema-card{order:2}.editor-card{order:1}.stat-grid{grid-template-columns:1fr 1fr}.editor-bottom{align-items:flex-start;flex-direction:column}.results-top{align-items:flex-start;flex-direction:column}.result-actions{width:100%;justify-content:flex-start}.shortcut{display:none}}
+@media(max-width:440px){.page-head{flex-direction:column}.page-head>.button{align-self:stretch;justify-content:center}.top-actions .avatar{display:none}.stat-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <a class="brand" href="https://theanalyst.in/"><span class="brand-mark">Q</span><span><strong>QueryNest</strong><small>by The Analyst</small></span></a>
+  <div class="workspace-tag"><i class="dot"></i> LOCAL WORKSPACE <span style="margin-left:auto;color:#71829b">DEMO</span></div>
+  <div class="nav-label">Workspace</div>
+  <div class="nav-group">
+    <button class="nav-btn active" data-view="editor"><span class="nav-icon">⌘</span>Query editor</button>
+    <button class="nav-btn" data-view="saved"><span class="nav-icon">▤</span>Saved queries</button>
+    <button class="nav-btn" data-view="dashboards"><span class="nav-icon">▦</span>Dashboards</button>
+    <button class="nav-btn" data-view="sources"><span class="nav-icon">◉</span>Data sources</button>
+  </div>
+  <div class="sidebar-spacer"></div>
+  <div class="sidebar-status"><strong><i class="dot"></i> SQLite engine ready</strong>Queries run in this browser session.<br>Saved items stay on this device.</div>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <div class="crumb">Workspace <span style="padding:0 7px;color:#c2c9d3">/</span><b id="crumb-label">Query editor</b></div>
+    <div class="top-actions">
+      <button class="button ghost" id="theme-toggle" title="Toggle theme">◐ <span class="theme-label">Dark mode</span></button>
+      <div class="avatar" title="Local workspace">QN</div>
+    </div>
+  </div>
+  <div class="content">
+    <section class="view active" id="view-editor">
+      <div class="page-head">
+        <div><p class="eyebrow">SQL WORKSPACE · SQLITE</p><h1>Query editor</h1><p class="subtitle">Ask questions of your data. Turn results into something you can act on.</p></div>
+        <button class="button primary" id="run-query">▶ Run query <span style="opacity:.75;font-size:10px">⌘ ↵</span></button>
+      </div>
+      <div class="stat-grid">
+        <div class="card stat-card"><div class="stat-label">Active database</div><div class="stat-value" style="font-size:16px">Demo SQLite</div><div class="stat-foot">In-browser SQLite engine</div></div>
+        <div class="card stat-card"><div class="stat-label">Available tables</div><div class="stat-value" id="table-count">4</div><div class="stat-foot">Ready to query</div></div>
+        <div class="card stat-card"><div class="stat-label">Saved queries</div><div class="stat-value" id="saved-count">0</div><div class="stat-foot">Stored on this device</div></div>
+      </div>
+      <div class="editor-grid">
+        <section class="card schema-card">
+          <div class="card-title"><h2>DATA EXPLORER</h2><small id="schema-count">4 TABLES</small></div>
+          <div class="schema-inner">
+            <div class="source-row"><span class="badge-icon">▣</span><span>Demo SQLite</span><small>CONNECTED</small></div>
+            <div id="table-list"></div>
+          </div>
+          <div class="schema-foot">Choose a table to preview its columns and row count.</div>
+        </section>
+        <section class="card editor-card">
+          <div class="editor-toolbar">
+            <div class="editor-toolbar-left"><i class="engine-dot"></i><b>Untitled query</b><span class="pill">SQL</span></div>
+            <div class="editor-toolbar-right"><button class="button ghost" id="format-query">Format</button><button class="button ghost" id="clear-query">Clear</button></div>
+          </div>
+          <div class="editor-shell"><textarea id="sql-editor" spellcheck="false" aria-label="SQL query editor">SELECT region,
+       COUNT(*) AS orders,
+       ROUND(SUM(amount), 2) AS revenue
+FROM orders
+GROUP BY region
+ORDER BY revenue DESC;</textarea></div>
+          <div class="editor-bottom">
+            <div class="editor-bottom-left">
+              <button class="button primary" id="run-query-bottom">▶ Run</button>
+              <button class="button" id="save-query">＋ Save query</button>
+              <button class="button" id="add-dashboard">▦ Add to dashboard</button>
+            </div>
+            <div class="editor-bottom-right"><span class="shortcut">Ctrl / ⌘ + Enter to run</span></div>
+          </div>
+          <div class="status-line" id="query-status" aria-live="polite">SQLite is ready. Run the starter query or write your own.</div>
+        </section>
+      </div>
+      <section class="card results-card">
+        <div class="results-top">
+          <div><h2>Query results</h2><small id="result-caption">No query has been run yet</small></div>
+          <div class="result-actions">
+            <div class="tabs"><button class="tab active" data-result-tab="table">Table</button><button class="tab" data-result-tab="chart">Chart</button></div>
+            <select class="select" id="chart-type" aria-label="Chart type"><option value="bar">Bar</option><option value="line">Line</option><option value="area">Area</option><option value="pie">Pie</option></select>
+            <button class="button" id="export-csv" disabled>↓ CSV</button>
+            <button class="button" id="export-json" disabled>↓ JSON</button>
+          </div>
+        </div>
+        <div class="result-meta"><span id="row-count">0 rows</span><span id="run-time">—</span><span id="result-source">Demo SQLite</span></div>
+        <div id="table-result" class="table-wrap"><div class="empty"><strong>Your results will appear here</strong>Run a SQL query to see rows from your database.</div></div>
+        <div id="chart-result" class="chart-wrap hidden"><div class="empty"><strong>No chart to show yet</strong>Run a query with a category and a numeric value.</div></div>
+        <div class="chart-hint" id="chart-hint">Chart axes are inferred from your query result. Switch to Chart to explore the output visually.</div>
+      </section>
+      <div class="footnote">This static edition runs SQLite locally in your browser. Query results and imported files are not uploaded. <a class="site-link" href="https://theanalyst.in/">The Analyst home →</a></div>
+    </section>
+
+    <section class="view" id="view-saved">
+      <div class="page-head"><div><p class="eyebrow">YOUR LIBRARY</p><h1>Saved queries</h1><p class="subtitle">Reuse useful SQL without starting from scratch.</p></div><button class="button primary" id="new-query-from-saved">＋ New query</button></div>
+      <div class="card list-card" id="saved-list"><div class="empty"><strong>No saved queries yet</strong>Save a query from the editor and it will appear here.</div></div>
+    </section>
+
+    <section class="view" id="view-dashboards">
+      <div class="page-head"><div><p class="eyebrow">REPORTING</p><h1>Dashboards</h1><p class="subtitle">Keep useful query views together in a lightweight dashboard.</p></div><button class="button primary" id="new-dashboard">＋ Create dashboard</button></div>
+      <div class="card list-card" id="dashboard-list"><div class="empty"><strong>No dashboards yet</strong>Run a query and choose “Add to dashboard” to save a result view.</div></div>
+    </section>
+
+    <section class="view" id="view-sources">
+      <div class="page-head"><div><p class="eyebrow">CONNECTIONS</p><h1>Data sources</h1><p class="subtitle">Connect a local SQLite database or bring in a CSV file.</p></div></div>
+      <div class="card list-card">
+        <div class="list-row"><div class="list-symbol">▣</div><div class="list-main"><strong>Demo SQLite</strong><small>Built-in sample database · SQLite · Connected in this browser</small></div><span class="pill"><i class="dot"></i> Connected</span></div>
+        <div class="list-row"><div class="list-symbol">▧</div><div class="list-main"><strong>Import SQLite database</strong><small>Open an existing .db or .sqlite file in this browser session.</small></div><button class="button" id="import-db-btn">Choose file</button></div>
+        <div class="list-row"><div class="list-symbol">⇧</div><div class="list-main"><strong>Import CSV as a table</strong><small>Upload a CSV file and QueryNest will create a table you can query.</small></div><button class="button" id="import-csv-btn">Choose file</button></div>
+        <div class="list-row"><div class="list-symbol">↓</div><div class="list-main"><strong>Download SQLite database</strong><small>Export the current database, including tables you imported.</small></div><button class="button" id="export-db-btn">Download .sqlite</button></div>
+      </div>
+      <div class="import-strip"><div style="font-size:19px;color:#6881cf">ⓘ</div><div><strong>Local-first data handling</strong><small>Your database is held in browser memory for this session. Imported files are not sent to The Analyst.</small></div></div>
+      <input class="hidden" id="sqlite-file" type="file" accept=".db,.sqlite,.sqlite3,application/x-sqlite3">
+      <input class="hidden" id="csv-file" type="file" accept=".csv,text/csv">
+    </section>
+  </div>
+</main>
+</div>
+
+<div class="modal-backdrop hidden" id="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head"><h2 id="modal-title">Save query</h2><button class="button ghost" id="modal-close">✕</button></div>
+    <div class="modal-body"><label class="field"><span id="modal-label">Query name</span><input id="modal-input" type="text" maxlength="80" placeholder="e.g. Revenue by region"></label><p id="modal-help" style="font-size:10px;color:#8692a4;margin:0">Your saved queries stay in this browser.</p></div>
+    <div class="modal-foot"><button class="button" id="modal-cancel">Cancel</button><button class="button primary" id="modal-confirm">Save</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const STORE = {queries:'querynest.savedQueries.v1',dashboards:'querynest.dashboards.v1',theme:'querynest.theme.v1'};
+let SQL = null, db = null, editor = null, current = {columns:[],rows:[]}, currentSql = '', currentView = 'editor', modalAction = null, queryCounter = 0;
+let savedQueries = readStore(STORE.queries,[]), dashboards = readStore(STORE.dashboards,[]);
+function readStore(key,fallback){try{const value=JSON.parse(localStorage.getItem(key)||'null');return Array.isArray(value)?value:fallback}catch(_){return fallback}}
+function writeStore(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch(_){toast('Browser storage is full. Export your saved items to keep a copy.');}}
+function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2600)}
+function setStatus(message,error){$('query-status').textContent=message;$('query-status').classList.toggle('error',!!error)}
+function safeName(name){return String(name||'').replace(/[^a-zA-Z0-9_]/g,'_').replace(/^(\d)/,'_$1')||'imported_data'}
+function esc(value){return String(value===null||value===undefined?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+function seedDatabase(){
+ db = new SQL.Database();
+ db.run('CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer TEXT, region TEXT, category TEXT, amount REAL, order_date TEXT)');
+ db.run('CREATE TABLE employees (employee_id INTEGER PRIMARY KEY, name TEXT, department TEXT, role TEXT, salary REAL, location TEXT)');
+ db.run('CREATE TABLE departments (department TEXT PRIMARY KEY, manager TEXT, annual_budget REAL)');
+ db.run('CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, customer TEXT, segment TEXT, city TEXT)');
+ const regions=['North','South','East','West'],cats=['Software','Hardware','Services','Training'],cities=['Bengaluru','Mumbai','Hyderabad','Pune','Delhi','Chennai'];
+ const insert=db.prepare('INSERT INTO orders (order_id,customer,region,category,amount,order_date) VALUES (?,?,?,?,?,?)');
+ for(let i=1;i<=120;i++){const month=String(1+(i*7%12)).padStart(2,'0'),day=String(1+(i*11%27)).padStart(2,'0');insert.run([i,'Customer '+String(1+(i*3%24)).padStart(2,'0'),regions[i%4],cats[(i*3)%4],Number((180+(i*137)%4200+(i%5)*61).toFixed(2)),'2025-'+month+'-'+day]);}
+ insert.free();
+ const depts=[['Engineering','Priya Menon',5200000],['Sales','Rahul Verma',3100000],['Analytics','Sneha Rao',2800000],['Operations','Vikram Shah',2400000],['Finance','Megha Iyer',2200000],['Marketing','Karan Das',2600000]];
+ const d=db.prepare('INSERT INTO departments VALUES (?,?,?)');depts.forEach(row=>d.run(row));d.free();
+ const people=[['Aarav Sharma','Engineering','Data Engineer',1280000,'Bengaluru'],['Aditi Patel','Sales','Account Executive',940000,'Mumbai'],['Ananya Rao','Analytics','Analyst',1190000,'Hyderabad'],['Arjun Iyer','Operations','Operations Lead',860000,'Chennai'],['Diya Mehta','Finance','Finance Analyst',1100000,'Pune'],['Kabir Singh','Marketing','Growth Manager',980000,'Delhi'],['Kavya Nair','Engineering','Developer',1320000,'Bengaluru'],['Neel Kapoor','Analytics','BI Analyst',1050000,'Hyderabad'],['Meera Das','Sales','Sales Analyst',880000,'Mumbai'],['Rohan Khan','Finance','Controller',1440000,'Pune']];
+ const p=db.prepare('INSERT INTO employees (name,department,role,salary,location) VALUES (?,?,?,?,?)');people.forEach(row=>p.run(row));p.free();
+ const clients=db.prepare('INSERT INTO customers VALUES (?,?,?,?)');for(let i=1;i<=24;i++)clients.run([i,'Customer '+String(i).padStart(2,'0'),['SMB','Mid-market','Enterprise'][i%3],cities[i%6]]);clients.free();
+}
+function tableNames(){const res=db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");return res.length?res[0].values.map(r=>r[0]):[]}
+function refreshExplorer(){
+ const names=tableNames();$('table-count').textContent=names.length;$('schema-count').textContent=names.length+' TABLES';
+ $('table-list').innerHTML=names.map(name=>{const info=db.exec('SELECT COUNT(*) FROM "'+name.replace(/"/g,'""')+'"');const count=info[0]?.values[0][0]??0;return '<button class="table-item" data-table="'+esc(name)+'"><span>▤</span>'+esc(name)+'<span class="count">'+count+'</span></button>'}).join('');
+ document.querySelectorAll('[data-table]').forEach(btn=>btn.addEventListener('click',()=>previewTable(btn.dataset.table)));
+}
+function previewTable(name){
+ const info=db.exec('PRAGMA table_info("'+name.replace(/"/g,'""')+'")');
+ const cols=info.length?info[0].values.map(r=>r[1]+' · '+r[2]):[];
+ const count=db.exec('SELECT COUNT(*) FROM "'+name.replace(/"/g,'""')+'"')[0].values[0][0];
+ $('result-caption').textContent=name+' · '+count+' rows · '+cols.length+' columns';
+ $('table-result').innerHTML='<div class="empty"><strong>'+esc(name)+'</strong>'+esc(cols.join('  |  '))+'<br>Click Run on a SELECT query to inspect table records.</div>';
+ editor.setValue('SELECT *\\nFROM "'+name.replace(/"/g,'""')+'"\\nLIMIT 100;');
+ switchView('editor');
+}
+function initEditor(){
+ const textarea=$('sql-editor');
+ if(window.CodeMirror){editor=CodeMirror.fromTextArea(textarea,{mode:'text/x-sql',lineNumbers:true,indentUnit:4,tabSize:4,matchBrackets:true,styleActiveLine:true,extraKeys:{'Ctrl-Enter':runQuery,'Cmd-Enter':runQuery,'Tab':cm=>cm.execCommand('insertSoftTab')}});}
+ else {editor={getValue:()=>textarea.value,setValue:v=>textarea.value=v,focus:()=>textarea.focus()};}
+}
+function runQuery(){
+ if(!db){setStatus('SQLite is still starting. Try again in a moment.',true);return}
+ const sql=editor.getValue().trim();if(!sql){setStatus('Enter a SQL statement first.',true);return}
+ const started=performance.now();
+ try{
+  const results=db.exec(sql);
+  const result=results.length?results[results.length-1]:null;
+  current={columns:result?.columns||[],rows:result?.values||[]};currentSql=sql;
+  const elapsed=(performance.now()-started);
+  $('row-count').textContent=current.rows.length+' rows';$('run-time').textContent=elapsed.toFixed(1)+' ms';$('result-source').textContent='SQLite · local';
+  $('result-caption').textContent='Query finished · '+new Date().toLocaleTimeString();
+  $('export-csv').disabled=!current.columns.length;$('export-json').disabled=!current.columns.length;
+  renderTable();renderChart();setStatus('Query completed successfully in '+elapsed.toFixed(1)+' ms · '+current.rows.length+' rows returned.',false);
+  queryCounter++;
+ }catch(error){setStatus(error.message||String(error),true);toast('Query failed. Check the SQL syntax.')}
+}
+function renderTable(){
+ if(!current.columns.length){$('table-result').innerHTML='<div class="empty"><strong>Statement executed</strong>This SQL statement did not return a result set.</div>';return}
+ const head='<thead><tr>'+current.columns.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead>';
+ const body='<tbody>'+current.rows.map(row=>'<tr>'+row.map(v=>'<td>'+esc(v===null?'NULL':v)+'</td>').join('')+'</tr>').join('')+'</tbody>';
+ $('table-result').innerHTML='<table>'+head+body+'</table>';
+}
+function numeric(value){return value!==null&&value!==''&&Number.isFinite(Number(value))}
+function chartFields(){
+ const ix=current.columns.findIndex((_,i)=>current.rows.some(r=>numeric(r[i])));
+ let iy=ix;
+ if(ix>=0){for(let i=0;i<current.columns.length;i++){if(i!==ix&&current.rows.some(r=>numeric(r[i]))){iy=i;break}}}
+ const x=ix<0?0:current.columns.findIndex((_,i)=>i!==iy&&!current.rows.some(r=>numeric(r[i])));
+ return {x:x<0?0:x,y:iy};
+}
+function renderChart(){
+ if(!current.columns.length||!current.rows.length){$('chart-result').innerHTML='<div class="empty"><strong>No chart to show yet</strong>Run a query with a category and a numeric value.</div>';return}
+ const fields=chartFields(),type=$('chart-type').value,x=fields.x,y=fields.y;
+ if(y<0||!current.rows.some(r=>numeric(r[y]))){$('chart-result').innerHTML='<div class="empty"><strong>Numeric values required</strong>Choose a query that returns at least one numeric column.</div>';return}
+ const data=current.rows.slice(0,40).map(r=>({label:String(r[x]??''),value:Number(r[y])||0}));
+ const W=900,H=300,left=58,right=20,top=20,bottom=46,innerW=W-left-right,innerH=H-top-bottom;
+ const max=Math.max(1,...data.map(d=>d.value)),min=Math.min(0,...data.map(d=>d.value));
+ const labels=data.map(d=>d.label);
+ let svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(type)+' chart">';
+ for(let i=0;i<5;i++){const yy=top+(innerH*i/4);svg+='<line x1="'+left+'" y1="'+yy+'" x2="'+(W-right)+'" y2="'+yy+'" stroke="#e9edf4" stroke-width="1"/><text x="'+(left-10)+'" y="'+(yy+4)+'" text-anchor="end" fill="#929daf" font-size="10">'+(max-(max-min)*i/4).toFixed(0)+'</text>'}
+ const xPos=i=>left+(data.length===1?innerW/2:(i*innerW/(data.length-1)));
+ const yPos=v=>top+innerH-(v-min)/(max-min||1)*innerH;
+ if(type==='bar'){
+  const slot=innerW/data.length,bw=Math.max(5,Math.min(36,slot*.62));
+  data.forEach((d,i)=>{const xx=left+i*slot+(slot-bw)/2,yy=yPos(d.value),hh=Math.max(1,top+innerH-yy);svg+='<rect x="'+xx+'" y="'+yy+'" width="'+bw+'" height="'+hh+'" rx="4" fill="#6885ed"/>'});
+ }else if(type==='pie'){
+  const total=data.reduce((s,d)=>s+Math.max(0,d.value),0)||1,cx=W/2,cy=H/2,r=105,circ=2*Math.PI*r;let offset=0;
+  data.forEach((d,i)=>{const length=Math.max(0,d.value)/total*circ;svg+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+['#5b78e6','#31a88a','#e6a348','#8c70d8','#d66f8b','#4d9eb9'][i%6]+'" stroke-width="36" stroke-dasharray="'+length+' '+(circ-length)+'" stroke-dashoffset="'+(-offset)+'" transform="rotate(-90 '+cx+' '+cy+')"/>';offset+=length});
+  svg+='<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" fill="#52627a" font-size="17" font-weight="700">'+data.length+'</text><text x="'+cx+'" y="'+(cy+17)+'" text-anchor="middle" fill="#929daf" font-size="10">categories</text>';
+ }else{
+  const points=data.map((d,i)=>xPos(i)+','+yPos(d.value)).join(' ');
+  if(type==='area'){svg+='<polygon points="'+left+','+(top+innerH)+' '+points+' '+(left+innerW)+','+(top+innerH)+'" fill="#6885ed" opacity=".14"/>'}
+  svg+='<polyline points="'+points+'" fill="none" stroke="#5e7de9" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>';
+  data.forEach((d,i)=>{svg+='<circle cx="'+xPos(i)+'" cy="'+yPos(d.value)+'" r="4" fill="#fff" stroke="#5e7de9" stroke-width="2"/>'});
+ }
+ data.forEach((d,i)=>{if(data.length<=16||i%Math.ceil(data.length/16)===0){const xx=type==='bar'?left+(i+.5)*innerW/data.length:xPos(i);svg+='<text x="'+xx+'" y="'+(H-16)+'" text-anchor="middle" fill="#8995a8" font-size="9">'+esc(d.label.slice(0,13))+'</text>'}});
+ svg+='</svg>';$('chart-result').innerHTML=svg;
+ $('chart-hint').textContent='X-axis: '+current.columns[x]+' · Value: '+current.columns[y]+' · '+type+' chart uses '+data.length+' result rows.';
+}
+function saveQuery(){
+ if(!currentSql){const sql=editor.getValue().trim();if(!sql){toast('Write a query before saving.');return}currentSql=sql}
+ openModal('Save query','Query name','e.g. Revenue by region',name=>{
+  const query={id:Date.now().toString(),name,sql:editor.getValue().trim(),created:new Date().toISOString()};
+  savedQueries.unshift(query);writeStore(STORE.queries,savedQueries);refreshCounts();renderSaved();toast('Query saved on this device.');
+ });
+}
+function openModal(title,label,placeholder,action){
+ modalAction=action;$('modal-title').textContent=title;$('modal-label').textContent=label;$('modal-input').placeholder=placeholder;$('modal-input').value='';$('modal-backdrop').classList.remove('hidden');setTimeout(()=>$('modal-input').focus(),30);
+}
+function closeModal(){$('modal-backdrop').classList.add('hidden');modalAction=null}
+function createDashboard(){
+ const sql=editor.getValue().trim();if(!sql){toast('Write a query before adding a dashboard tile.');return}
+ openModal('Add to dashboard','Dashboard name','e.g. Commercial performance',name=>{
+  const dashboard={id:Date.now().toString(),name,sql,chart:$('chart-type').value,created:new Date().toISOString()};
+  dashboards.unshift(dashboard);writeStore(STORE.dashboards,dashboards);renderDashboards();toast('Dashboard created with your current query.');
+ });
+}
+function renderSaved(){
+ const el=$('saved-list');
+ if(!savedQueries.length){el.innerHTML='<div class="empty"><strong>No saved queries yet</strong>Save a query from the editor and it will appear here.</div>';return}
+ el.innerHTML=savedQueries.map(q=>'<div class="list-row"><div class="list-symbol">⌘</div><div class="list-main"><strong>'+esc(q.name)+'</strong><small>'+esc(q.sql.replace(/\s+/g,' ').slice(0,110))+'</small></div><div class="list-actions"><button class="button" data-open-query="'+q.id+'">Open</button><button class="button danger" data-delete-query="'+q.id+'">Delete</button></div></div>').join('');
+ el.querySelectorAll('[data-open-query]').forEach(b=>b.onclick=()=>{const q=savedQueries.find(x=>x.id===b.dataset.openQuery);if(q){editor.setValue(q.sql);switchView('editor');toast('Query loaded.')}})
+ el.querySelectorAll('[data-delete-query]').forEach(b=>b.onclick=()=>{savedQueries=savedQueries.filter(x=>x.id!==b.dataset.deleteQuery);writeStore(STORE.queries,savedQueries);refreshCounts();renderSaved()})
+}
+function renderDashboards(){
+ const el=$('dashboard-list');
+ if(!dashboards.length){el.innerHTML='<div class="empty"><strong>No dashboards yet</strong>Run a query and choose “Add to dashboard” to save a result view.</div>';return}
+ el.innerHTML=dashboards.map(d=>'<div class="list-row"><div class="list-symbol">▦</div><div class="list-main"><strong>'+esc(d.name)+'</strong><small>'+esc(d.sql.replace(/\s+/g,' ').slice(0,110))+'</small></div><div class="list-actions"><span class="pill">'+esc(d.chart)+' chart</span><button class="button" data-open-dashboard="'+d.id+'">Open</button><button class="button danger" data-delete-dashboard="'+d.id+'">Delete</button></div></div>').join('');
+ el.querySelectorAll('[data-open-dashboard]').forEach(b=>b.onclick=()=>{const d=dashboards.find(x=>x.id===b.dataset.openDashboard);if(d){editor.setValue(d.sql);$('chart-type').value=d.chart;switchView('editor');runQuery();$('chart-result').classList.remove('hidden');$('table-result').classList.add('hidden');document.querySelector('[data-result-tab="chart"]').classList.add('active');document.querySelector('[data-result-tab="table"]').classList.remove('active')}})
+ el.querySelectorAll('[data-delete-dashboard]').forEach(b=>b.onclick=()=>{dashboards=dashboards.filter(x=>x.id!==b.dataset.deleteDashboard);writeStore(STORE.dashboards,dashboards);renderDashboards()})
+}
+function refreshCounts(){$('saved-count').textContent=savedQueries.length}
+function switchView(name){
+ currentView=name;document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+ const labels={editor:'Query editor',saved:'Saved queries',dashboards:'Dashboards',sources:'Data sources'};$('crumb-label').textContent=labels[name]||name;
+ if(name==='saved')renderSaved();if(name==='dashboards')renderDashboards();
+}
+function exportBlob(filename,type,content){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function exportCSV(){
+ if(!current.columns.length)return;
+ const quote=v=>{const s=v===null?'':String(v);return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+ const rows=[current.columns,...current.rows].map(row=>row.map(quote).join(',')).join('\r\n');exportBlob('querynest-results.csv','text/csv;charset=utf-8',rows);
+}
+function exportJSON(){if(!current.columns.length)return;const rows=current.rows.map(row=>Object.fromEntries(current.columns.map((c,i)=>[c,row[i]])));exportBlob('querynest-results.json','application/json',JSON.stringify(rows,null,2))}
+function exportDB(){const bytes=db.export();exportBlob('querynest.sqlite','application/vnd.sqlite3',bytes)}
+function parseCSV(text){
+ const rows=[];let row=[],field='',quoted=false;
+ for(let i=0;i<text.length;i++){const ch=text[i],next=text[i+1];if(quoted){if(ch==='"'&&next==='"'){field+='"';i++}else if(ch==='"'){quoted=false}else field+=ch}else if(ch==='"'){quoted=true}else if(ch===','){row.push(field);field=''}else if(ch==='\n'){row.push(field);rows.push(row);row=[];field=''}else if(ch!=='\r'){field+=ch}}
+ row.push(field);if(row.some(v=>v!==''))rows.push(row);return rows;
+}
+function importCSV(file){
+ const reader=new FileReader();reader.onload=()=>{
+  try{
+   const rows=parseCSV(String(reader.result||''));if(rows.length<2)throw new Error('CSV needs a header row and at least one data row.');
+   const name=safeName(file.name.replace(/\.csv$/i,''));const headers=rows[0].map((h,i)=>safeName(h||'column_'+(i+1)));
+   const types=headers.map((_,i)=>{const values=rows.slice(1).map(r=>r[i]).filter(v=>v!==undefined&&v!=='');return values.length&&values.every(v=>Number.isFinite(Number(v)))?'REAL':'TEXT'});
+   db.run('DROP TABLE IF EXISTS "'+name+'"');db.run('CREATE TABLE "'+name+'" ('+headers.map((h,i)=>'"'+h+'" '+types[i]).join(',')+')');
+   const statement=db.prepare('INSERT INTO "'+name+'" VALUES ('+headers.map(()=>'?').join(',')+')');
+   rows.slice(1).forEach(r=>statement.run(headers.map((_,i)=>{const val=r[i]??null;return val!==null&&types[i]==='REAL'&&val!==''?Number(val):val})));statement.free();
+   refreshExplorer();refreshCounts();toast('CSV imported as table "'+name+'".');switchView('editor');editor.setValue('SELECT * FROM "'+name+'" LIMIT 100;');runQuery();
+  }catch(e){toast(e.message||String(e))}
+ };reader.readAsText(file);
+}
+function importDB(file){
+ const reader=new FileReader();reader.onload=()=>{
+  try{db.close();db=new SQL.Database(new Uint8Array(reader.result));refreshExplorer();toast('SQLite database opened successfully.');switchView('editor');setStatus('Opened '+file.name+' in this browser session.',false)}
+  catch(e){seedDatabase();refreshExplorer();toast('Could not open database: '+e.message)}
+ };reader.readAsArrayBuffer(file);
+}
+function themeToggle(){document.body.classList.toggle('dark');const dark=document.body.classList.contains('dark');localStorage.setItem(STORE.theme,dark?'dark':'light');document.querySelector('.theme-label').textContent=dark?'Light mode':'Dark mode'}
+function formatSQL(){const value=editor.getValue().trim();if(!value)return;editor.setValue(value.replace(/\s+(FROM|WHERE|GROUP BY|ORDER BY|HAVING|LIMIT|LEFT JOIN|RIGHT JOIN|INNER JOIN|JOIN|ON|UNION)\s+/gi,'\n$1 ').replace(/,\s*/g,',\n       ').replace(/\s*;\s*$/,';'))}
+function initEvents(){
+ document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+ $('run-query').onclick=runQuery;$('run-query-bottom').onclick=runQuery;$('save-query').onclick=saveQuery;$('add-dashboard').onclick=createDashboard;
+ $('format-query').onclick=formatSQL;$('clear-query').onclick=()=>editor.setValue('');
+ $('chart-type').onchange=()=>{renderChart();if(!$('chart-result').classList.contains('hidden'))$('chart-result').classList.remove('hidden')};
+ document.querySelectorAll('[data-result-tab]').forEach(b=>b.onclick=()=>{const chart=b.dataset.resultTab==='chart';document.querySelectorAll('[data-result-tab]').forEach(x=>x.classList.toggle('active',x===b));$('table-result').classList.toggle('hidden',chart);$('chart-result').classList.toggle('hidden',!chart);$('chart-hint').classList.toggle('hidden',!chart)});
+ $('export-csv').onclick=exportCSV;$('export-json').onclick=exportJSON;
+ $('theme-toggle').onclick=themeToggle;
+ $('import-db-btn').onclick=()=>$('sqlite-file').click();$('import-csv-btn').onclick=()=>$('csv-file').click();
+ $('sqlite-file').onchange=e=>{if(e.target.files[0])importDB(e.target.files[0]);e.target.value=''};
+ $('csv-file').onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value=''};
+ $('export-db-btn').onclick=exportDB;
+ $('new-query-from-saved').onclick=()=>{editor.setValue('SELECT * FROM orders LIMIT 100;');switchView('editor')};
+ $('new-dashboard').onclick=()=>{switchView('editor');createDashboard()};
+ $('modal-close').onclick=closeModal;$('modal-cancel').onclick=closeModal;
+ $('modal-confirm').onclick=()=>{const value=$('modal-input').value.trim();if(!value){$('modal-input').focus();return}const action=modalAction;closeModal();if(action)action(value)};
+ $('modal-backdrop').addEventListener('click',e=>{if(e.target===$('modal-backdrop'))closeModal()});
+ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();runQuery()}if(e.key==='Escape')closeModal()});
+}
+async function init(){
+ try{
+  if(!window.initSqlJs)throw new Error('SQLite library did not load. Check your internet connection and refresh.');
+  SQL=await window.initSqlJs({locateFile:file=>'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/'+file});
+  seedDatabase();initEditor();initEvents();refreshExplorer();refreshCounts();
+  if(localStorage.getItem(STORE.theme)==='dark'){document.body.classList.add('dark');document.querySelector('.theme-label').textContent='Light mode'}
+  setStatus('SQLite is ready. Your data stays in this browser.',false);
+ }catch(e){
+  $('query-status').textContent=e.message||String(e);$('query-status').classList.add('error');
+  $('table-list').innerHTML='<div class="empty">SQLite could not start. Refresh the page when connected to the internet.</div>';
+ }
+}
+init();
+})();
+</script>
+</body>
+</html>
